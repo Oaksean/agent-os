@@ -1,0 +1,152 @@
+# Agent OS 配置文件
+
+# 服务配置
+server:
+  host: "0.0.0.0"
+  port: 8000
+  reload: true
+  workers: 1
+  log_level: "info"
+
+# 数据库配置
+database:
+  postgres:
+    host: "localhost"
+    port: 5432
+    database: "agent_os"
+    username: "postgres"
+    password: "postgres"
+    pool_size: 10
+  
+  redis:
+    host: "localhost"
+    port: 6379
+    db: 0
+    password: ""
+  
+  qdrant:
+    host: "localhost"
+    port: 6333
+    collection: "agent_memory"
+
+# 记忆系统配置
+memory:
+  working_memory:
+    max_size: 100
+    max_tokens: 4000
+  
+  long_term_memory:
+    vector_store: "qdrant"
+    embedding_model: "text-embedding-ada-002"
+    embedding_dimension: 1536
+  
+  episodic_memory:
+    retention_days: 30
+    compression_enabled: true
+
+# 规划器配置
+planner:
+  hierarchical:
+    max_subtasks: 8
+    min_subtasks: 3
+    llm_enabled: true
+  
+  dynamic_replan:
+    enabled: true
+    max_attempts: 3
+    timeout_seconds: 300
+
+# 工具总线配置
+tools:
+  rate_limit_default: 60  # 每分钟默认调用次数
+  timeout_default: 30.0   # 默认超时时间（秒）
+  
+  categories:
+    web:
+      enabled: true
+      allow_external: true
+    
+    file:
+      enabled: true
+      allowed_directories: ["/tmp", "./data"]
+    
+    system:
+      enabled: false  # 谨慎启用系统工具
+    
+    custom:
+      enabled: true
+
+# 模型路由器配置
+models:
+  default_provider: "openai"
+  
+  providers:
+    openai:
+      api_key: "${OPENAI_API_KEY}"
+      models:
+        gpt-4: "gpt-4"
+        gpt-3.5: "gpt-3.5-turbo"
+        embedding: "text-embedding-ada-002"
+    
+    anthropic:
+      api_key: "${ANTHROPIC_API_KEY}"
+      models:
+        claude-3: "claude-3-opus-20240229"
+    
+    local:
+      ollama_url: "http://localhost:11434"
+      models:
+        llama2: "llama2"
+        mistral: "mistral"
+  
+  routing:
+    strategy: "cost_aware"  # cost_aware, performance, quality
+    fallback_enabled: true
+    cascade_enabled: true
+
+# 安全配置
+security:
+  authentication:
+    enabled: false  # 生产环境应启用
+    jwt_secret: "${JWT_SECRET}"
+    token_expiry_hours: 24
+  
+  sandbox:
+    enabled: true
+    max_memory_mb: 512
+    max_cpu_percent: 50
+    network_access: false
+  
+  audit:
+    enabled: true
+    log_file: "./logs/audit.log"
+    retention_days: 90
+
+# 监控配置
+monitoring:
+  enabled: true
+  metrics_port: 9090
+  
+  prometheus:
+    enabled: true
+    scrape_interval: "15s"
+  
+  logging:
+    level: "INFO"
+    file: "./logs/app.log"
+    max_size_mb: 100
+    backup_count: 5
+
+# 扩展功能
+extensions:
+  skill_learning:
+    enabled: true
+    auto_extract: false
+  
+  environment_sensing:
+    enabled: false
+    poll_interval_seconds: 60
+  
+  state_migration:
+    enabled: true
+    snapshot_dir: "./snapshots"

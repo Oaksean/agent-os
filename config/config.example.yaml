@@ -1,0 +1,334 @@
+# Agent OS 配置文件模板
+# 复制为 config.yaml 并根据需要修改
+
+# 系统配置
+system:
+  name: "Agent OS"
+  version: "1.0.0"
+  debug: false
+  log_level: "INFO"
+  data_dir: "./data"
+  log_dir: "./logs"
+  
+  # 性能配置
+  max_workers: 10
+  max_memory_mb: 4096
+  max_disk_gb: 10
+  timeout_seconds: 300
+
+# Agent内核配置
+kernel:
+  sandbox:
+    enabled: true
+    type: "docker"  # docker, process, or none
+    resource_limits:
+      cpu_percent: 50
+      memory_mb: 1024
+      disk_mb: 500
+      
+  scheduler:
+    type: "hybrid"  # deterministic, non_deterministic, or hybrid
+    max_concurrent_tasks: 5
+    retry_attempts: 3
+    retry_delay_seconds: 5
+    
+  event_engine:
+    enabled: true
+    poll_interval_seconds: 1
+    max_event_queue_size: 1000
+
+# 记忆系统配置
+memory:
+  working_memory:
+    max_tokens: 4000
+    compression_threshold: 0.8
+    summary_model: "gpt-3.5-turbo"
+    
+  long_term_memory:
+    type: "qdrant"  # qdrant, chroma, or postgres
+    vector_dimension: 1536
+    collection_name: "agent_memory"
+    similarity_threshold: 0.7
+    
+  episodic_memory:
+    enabled: true
+    max_episodes: 1000
+    compression_enabled: true
+    
+  consolidation:
+    enabled: true
+    interval_hours: 24
+    importance_threshold: 0.6
+
+# 规划引擎配置
+planner:
+  hierarchical:
+    enabled: true
+    max_depth: 5
+    backtracking_enabled: true
+    
+  dynamic_replanning:
+    enabled: true
+    timeout_seconds: 30
+    fallback_strategy: "simplify"
+    
+  constraints:
+    max_cost_usd: 10.0
+    max_time_seconds: 3600
+    allowed_tools: ["*"]  # * 表示允许所有工具
+    blocked_tools: []  # 禁止的工具列表
+    
+  parallel:
+    enabled: true
+    max_parallel_tasks: 3
+
+# 工具总线配置
+tools:
+  registry:
+    auto_discover: true
+    scan_interval_seconds: 60
+    
+  adapters:
+    rest:
+      timeout_seconds: 30
+      max_retries: 3
+      
+    graphql:
+      enabled: true
+      
+    grpc:
+      enabled: false
+      
+    command_line:
+      enabled: true
+      sandboxed: true
+      
+    browser:
+      enabled: false
+      
+  orchestration:
+    max_tool_chain_length: 10
+    validation_enabled: true
+    
+  audit:
+    enabled: true
+    log_all_calls: true
+    retention_days: 30
+
+# 模型路由器配置
+models:
+  # OpenAI模型
+  openai:
+    api_key: "${OPENAI_API_KEY}"  # 从环境变量读取
+    base_url: "https://api.openai.com/v1"
+    models:
+      gpt-4:
+        enabled: true
+        max_tokens: 8192
+        temperature: 0.7
+        cost_per_token: 0.00003
+        
+      gpt-3.5-turbo:
+        enabled: true
+        max_tokens: 4096
+        temperature: 0.7
+        cost_per_token: 0.0000015
+        
+  # Anthropic模型
+  anthropic:
+    api_key: "${ANTHROPIC_API_KEY}"
+    models:
+      claude-3-opus:
+        enabled: true
+        max_tokens: 4096
+        temperature: 0.7
+        cost_per_token: 0.000075
+        
+      claude-3-sonnet:
+        enabled: true
+        max_tokens: 4096
+        temperature: 0.7
+        cost_per_token: 0.000003
+        
+  # 本地模型
+  local:
+    ollama:
+      enabled: false
+      base_url: "http://localhost:11434"
+      models:
+        llama3:
+          enabled: true
+          max_tokens: 4096
+          temperature: 0.7
+          
+        mistral:
+          enabled: true
+          max_tokens: 4096
+          temperature: 0.7
+          
+    vllm:
+      enabled: false
+      base_url: "http://localhost:8000"
+      
+  # 路由策略
+  routing:
+    default_strategy: "cost_aware"
+    strategies:
+      cost_aware:
+        enabled: true
+        max_cost_per_task: 0.1
+        
+      performance:
+        enabled: true
+        max_latency_ms: 5000
+        
+      capability:
+        enabled: true
+        required_capabilities: []
+        
+    fallback_order: ["openai", "anthropic", "local"]
+
+# 通信层配置
+communication:
+  message_bus:
+    type: "redis"  # redis, rabbitmq, or in_memory
+    host: "localhost"
+    port: 6379
+    channel_prefix: "agent_"
+    
+  coordination:
+    enabled: true
+    election_timeout_seconds: 30
+    heartbeat_interval_seconds: 5
+    
+  protocols:
+    rest:
+      enabled: true
+      port: 8000
+      
+    websocket:
+      enabled: true
+      port: 8001
+      
+    grpc:
+      enabled: false
+      port: 50051
+
+# 安全配置
+security:
+  authentication:
+    enabled: false
+    jwt_secret: "${JWT_SECRET}"
+    token_expiry_hours: 24
+    
+  authorization:
+    enabled: true
+    rbac_enabled: true
+    default_role: "user"
+    
+  policies:
+    - name: "no_destructive_operations"
+      condition: "tool.name in ['rm', 'del', 'format']"
+      action: "deny"
+      
+    - name: "cost_limit"
+      condition: "task.estimated_cost > 10.0"
+      action: "require_approval"
+      
+    - name: "sensitive_data"
+      condition: "contains_sensitive_data(input)"
+      action: "log_and_continue"
+      
+  audit:
+    enabled: true
+    log_level: "INFO"
+    retention_days: 90
+
+# 扩展能力配置
+extensions:
+  skill_learning:
+    enabled: true
+    min_success_rate: 0.8
+    max_skills: 100
+    
+  environment_sensing:
+    enabled: false
+    poll_interval_seconds: 5
+    sensors: ["file_system", "network", "process"]
+    
+  state_migration:
+    enabled: true
+    compression_enabled: true
+    encryption_enabled: false
+
+# Web界面配置
+web:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8080
+  debug: false
+  
+  ui:
+    theme: "dark"
+    language: "zh-CN"
+    auto_refresh_seconds: 10
+    
+  features:
+    agent_management: true
+    task_monitoring: true
+    memory_explorer: true
+    tool_registry: true
+    model_router: true
+
+# 监控配置
+monitoring:
+  enabled: true
+  metrics:
+    enabled: true
+    port: 9090
+    
+  logging:
+    enabled: true
+    level: "INFO"
+    file: "./logs/agent-os.log"
+    max_size_mb: 100
+    backup_count: 5
+    
+  alerts:
+    enabled: false
+    webhook_url: ""
+    email_notifications: false
+
+# 数据库配置
+database:
+  main:
+    type: "postgresql"  # postgresql, sqlite, or mysql
+    host: "localhost"
+    port: 5432
+    database: "agent_os"
+    username: "${DB_USERNAME}"
+    password: "${DB_PASSWORD}"
+    pool_size: 10
+    max_overflow: 20
+    
+  cache:
+    type: "redis"
+    host: "localhost"
+    port: 6379
+    db: 0
+    password: "${REDIS_PASSWORD}"
+    
+  vector:
+    type: "qdrant"
+    host: "localhost"
+    port: 6333
+    collection: "agent_memory"
+
+# 环境变量占位符（实际值从.env文件或环境变量读取）
+# 需要设置的环境变量：
+# OPENAI_API_KEY=your_openai_key
+# ANTHROPIC_API_KEY=your_anthropic_key
+# DB_USERNAME=postgres
+# DB_PASSWORD=your_password
+# REDIS_PASSWORD=your_redis_password
+# JWT_SECRET=your_jwt_secret
