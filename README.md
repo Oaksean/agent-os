@@ -1,5 +1,73 @@
 # Agent OS：智能体操作系统 - 架构蓝图
 
+## 🎉 最新更新（v1.0.0）
+
+### 新增功能
+- ✅ **增强任务调度**：Cron定时调度、任务持久化、智能任务分配
+- ✅ **缓存系统**：Redis集成、LRU淘汰、缓存装饰器
+- ✅ **基础设施层**：流量控制、权限管理、日志系统
+- ✅ **Dashboard前端**：完整的可视化监控界面
+- ✅ **完整API**：集成基础设施的API服务
+- ✅ **实时推送**：WebSocket实时数据更新
+
+### 快速启动
+
+**Windows:**
+```bash
+scripts\start_dashboard.bat
+```
+
+**Linux/Mac:**
+```bash
+python scripts/start_dashboard.py
+```
+
+访问：
+- **Dashboard**: `http://localhost:8080`
+- **API文档**: `http://localhost:8000/docs`
+- **API根路径**: `http://localhost:8000`
+
+### 测试用户
+
+| User ID | Role | 权限 |
+|---------|------|------|
+| `test_user_001` | admin | 所有权限 |
+| `test_user_002` | user | 基本权限 |
+
+请求头添加：`X-User-ID: test_user_001`
+
+### 快速测试
+
+```bash
+# 提交任务
+curl -X POST http://localhost:8000/api/v1/tasks \
+  -H "Content-Type: application/json" \
+  -H "X-User-ID: test_user_001" \
+  -d '{"name": "test_task", "priority": "normal"}'
+
+# 提交Cron任务（每5分钟执行）
+curl -X POST http://localhost:8000/api/v1/tasks/cron \
+  -H "Content-Type: application/json" \
+  -H "X-User-ID: test_user_001" \
+  -d '{"name": "backup", "cron_expression": "*/5 * * * *"}'
+
+# 获取缓存统计
+curl http://localhost:8000/api/v1/cache/stats \
+  -H "X-User-ID: admin"
+```
+
+---
+
+## 📖 详细文档
+
+- [安装指南](docs/INSTALLATION.md)
+- [快速开始](docs/QUICK_START.md)
+- [API文档](http://localhost:8000/docs)
+- [Dashboard指南](dashboard/README.md)
+- [功能总结](IMPLEMENTATION_SUMMARY.md)
+
+---
+
 ## 项目概述
 
 Agent OS是一个面向"自主智能体"计算范式设计的系统内核与用户态基础设施。它为AI智能体提供运行、感知、规划、记忆、行动、协作与自我进化的统一环境。
@@ -200,22 +268,144 @@ agent-os/
 
 ## 贡献指南
 
-### 开发环境设置
+## 快速安装
+
+### 一键安装
+
+**Linux/macOS:**
+```bash
+git clone https://github.com/yourusername/agent-os.git
+cd agent-os
+./scripts/install.sh
+```
+
+**Windows:**
+```powershell
+git clone https://github.com/yourusername/agent-os.git
+cd agent-os
+.\scripts\install.ps1
+```
+
+**Docker:**
+```bash
+docker-compose up -d
+```
+
+详细安装指南请查看 [INSTALLATION.md](docs/INSTALLATION.md)
+
+## 详细安装指南
+
+完整的安装说明请参考：
+
+- **[安装文档](docs/INSTALLATION.md)** - 包含所有平台的详细安装步骤
+- **[快速开始](docs/QUICK_START.md)** - 5分钟快速上手指南
+- **[系统要求](docs/INSTALLATION.md#系统要求)** - 必需和可选依赖
+
+### 系统要求
+
+- Python 3.9+
+- pip (Python包管理器)
+- Git (版本控制)
+- 可选: Docker, PostgreSQL, Redis
+
+### 安装选项
+
+```bash
+# 标准安装
+./scripts/install.sh              # Linux/macOS
+.\scripts\install.ps1             # Windows
+
+# 开发环境安装
+./scripts/install.sh --dev        # Linux/macOS
+.\scripts\install.ps1 -Dev        # Windows
+
+# Docker安装
+./scripts/install.sh --docker     # Linux/macOS
+.\scripts\install.ps1 -Docker     # Windows
+```
+
+### 验证安装
+
+```bash
+python scripts/verify_installation.py
+```
+
+## 手动安装
+
+### Linux/macOS
+
 ```bash
 # 克隆仓库
 git clone https://github.com/yourusername/agent-os.git
 cd agent-os
 
 # 创建虚拟环境
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# 或 venv\Scripts\activate  # Windows
+python3 -m venv venv
+source venv/bin/activate
 
 # 安装依赖
-pip install -r requirements.txt
+pip install --upgrade pip setuptools wheel
+pip install -e .
 
-# 运行开发服务器
+# 配置环境
+cp .env.example .env
+# 编辑 .env 文件设置API密钥
+
+# 创建目录
+mkdir -p logs data models
+
+# 启动服务
 python -m src.api.main
+```
+
+### Windows
+
+```powershell
+# 克隆仓库
+git clone https://github.com/yourusername/agent-os.git
+cd agent-os
+
+# 创建虚拟环境
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# 安装依赖
+pip install --upgrade pip setuptools wheel
+pip install -e .
+
+# 配置环境
+Copy-Item .env.example .env
+# 编辑 .env 文件设置API密钥
+
+# 创建目录
+New-Item -ItemType Directory -Force -Path logs, data, models
+
+# 启动服务
+python -m src.api.main
+```
+
+### 使用Makefile
+
+```bash
+# 查看所有可用命令
+make help
+
+# 安装
+make install          # 标准安装
+make install-dev      # 开发环境安装
+
+# 开发
+make run              # 运行生产服务器
+make dev              # 运行开发服务器（自动重载）
+
+# 测试
+make test             # 运行所有测试
+make lint             # 代码检查
+make format           # 格式化代码
+
+# Docker
+make docker-up        # 启动Docker服务
+make docker-down      # 停止Docker服务
 ```
 
 ### 代码规范
