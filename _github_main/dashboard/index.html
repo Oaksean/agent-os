@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent OS Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <header class="navbar">
+        <div class="navbar-brand">
+            <h1>🤖 Agent OS</h1>
+            <span class="version">v0.3.0</span>
+        </div>
+        <div class="navbar-menu">
+            <a href="#overview" class="nav-link active">概览</a>
+            <a href="#agents" class="nav-link">Agent</a>
+            <a href="#tasks" class="nav-link">任务</a>
+            <a href="#logs" class="nav-link">日志</a>
+            <a href="#users" class="nav-link">用户</a>
+        </div>
+        <div class="navbar-status">
+            <span class="status-indicator online"></span>
+            <span id="connection-status">已连接</span>
+            <span id="current-time"></span>
+        </div>
+    </header>
+
+    <!-- 主要内容区域 -->
+    <main class="main-content">
+        <!-- 概览部分 -->
+        <section id="overview" class="section active">
+            <!-- 统计卡片 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon agents">🤖</div>
+                    <div class="stat-info">
+                        <h3>活跃Agent</h3>
+                        <p class="stat-value" id="active-agents">0</p>
+                        <span class="stat-label">总数: <span id="total-agents">0</span></span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon tasks">📋</div>
+                    <div class="stat-info">
+                        <h3>运行任务</h3>
+                        <p class="stat-value" id="running-tasks">0</p>
+                        <span class="stat-label">队列: <span id="pending-tasks">0</span></span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon users">👥</div>
+                    <div class="stat-info">
+                        <h3>活跃用户</h3>
+                        <p class="stat-value" id="active-users">0</p>
+                        <span class="stat-label">总数: <span id="total-users">0</span></span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon traffic">📈</div>
+                    <div class="stat-info">
+                        <h3>请求数/分</h3>
+                        <p class="stat-value" id="requests-per-minute">0</p>
+                        <span class="stat-label">成功率: <span id="success-rate">100%</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图表区域 -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>流量趋势</h3>
+                    <canvas id="traffic-chart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <h3>任务执行统计</h3>
+                    <canvas id="tasks-chart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <h3>资源使用</h3>
+                    <canvas id="resources-chart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <h3>响应时间分布</h3>
+                    <canvas id="response-time-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- 实时活动 -->
+            <div class="activity-section">
+                <h3>实时活动</h3>
+                <div class="activity-feed" id="activity-feed">
+                    <!-- 动态添加活动项 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Agent管理部分 -->
+        <section id="agents" class="section">
+            <div class="section-header">
+                <h2>Agent 管理</h2>
+                <button class="btn-primary" onclick="createAgent()">创建 Agent</button>
+            </div>
+
+            <div class="search-bar">
+                <input type="text" id="agent-search" placeholder="搜索 Agent..." onkeyup="searchAgents()">
+            </div>
+
+            <div class="agents-grid" id="agents-list">
+                <!-- 动态添加Agent卡片 -->
+            </div>
+        </section>
+
+        <!-- 任务管理部分 -->
+        <section id="tasks" class="section">
+            <div class="section-header">
+                <h2>任务管理</h2>
+                <div class="filter-buttons">
+                    <button class="btn-filter active" onclick="filterTasks('all')">全部</button>
+                    <button class="btn-filter" onclick="filterTasks('running')">运行中</button>
+                    <button class="btn-filter" onclick="filterTasks('pending')">等待中</button>
+                    <button class="btn-filter" onclick="filterTasks('completed')">已完成</button>
+                    <button class="btn-filter" onclick="filterTasks('failed')">失败</button>
+                </div>
+            </div>
+
+            <div class="tasks-table-container">
+                <table class="tasks-table" id="tasks-table">
+                    <thead>
+                        <tr>
+                            <th>任务ID</th>
+                            <th>名称</th>
+                            <th>优先级</th>
+                            <th>状态</th>
+                            <th>创建时间</th>
+                            <th>执行时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasks-body">
+                        <!-- 动态添加任务行 -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 日志查看部分 -->
+        <section id="logs" class="section">
+            <div class="section-header">
+                <h2>系统日志</h2>
+                <div class="log-filters">
+                    <select id="log-level-filter" onchange="filterLogs()">
+                        <option value="all">所有级别</option>
+                        <option value="DEBUG">DEBUG</option>
+                        <option value="INFO">INFO</option>
+                        <option value="WARNING">WARNING</option>
+                        <option value="ERROR">ERROR</option>
+                        <option value="CRITICAL">CRITICAL</option>
+                    </select>
+                    <select id="log-category-filter" onchange="filterLogs()">
+                        <option value="all">所有类别</option>
+                        <option value="system">系统</option>
+                        <option value="user">用户</option>
+                        <option value="agent">Agent</option>
+                        <option value="task">任务</option>
+                        <option value="security">安全</option>
+                    </select>
+                    <button class="btn-secondary" onclick="refreshLogs()">刷新</button>
+                </div>
+            </div>
+
+            <div class="logs-container" id="logs-container">
+                <!-- 动态添加日志条目 -->
+            </div>
+
+            <div class="pagination" id="logs-pagination">
+                <button onclick="loadLogsPage('prev')">上一页</button>
+                <span id="logs-page-info">第 1 页</span>
+                <button onclick="loadLogsPage('next')">下一页</button>
+            </div>
+        </section>
+
+        <!-- 用户管理部分 -->
+        <section id="users" class="section">
+            <div class="section-header">
+                <h2>用户管理</h2>
+                <button class="btn-primary" onclick="createUser()">创建用户</button>
+            </div>
+
+            <div class="search-bar">
+                <input type="text" id="user-search" placeholder="搜索用户..." onkeyup="searchUsers()">
+            </div>
+
+            <div class="users-table-container">
+                <table class="users-table" id="users-table">
+                    <thead>
+                        <tr>
+                            <th>用户ID</th>
+                            <th>用户名</th>
+                            <th>邮箱</th>
+                            <th>角色</th>
+                            <th>创建时间</th>
+                            <th>活跃度</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-body">
+                        <!-- 动态添加用户行 -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- 侧边栏详情面板 -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3 id="sidebar-title">详情</h3>
+            <button class="close-btn" onclick="closeSidebar()">×</button>
+        </div>
+        <div class="sidebar-content" id="sidebar-content">
+            <!-- 动态内容 -->
+        </div>
+    </aside>
+
+    <!-- 模态框 -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">标题</h3>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- 动态内容 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部状态栏 -->
+    <footer class="status-bar">
+        <div class="status-item">
+            <span>API: <span id="api-status">正常</span></span>
+        </div>
+        <div class="status-item">
+            <span>数据库: <span id="db-status">正常</span></span>
+        </div>
+        <div class="status-item">
+            <span>内存: <span id="memory-usage">0 MB</span></span>
+        </div>
+        <div class="status-item">
+            <span>CPU: <span id="cpu-usage">0%</span></span>
+        </div>
+        <div class="status-item">
+            <span>运行时间: <span id="uptime">0秒</span></span>
+        </div>
+    </footer>
+
+    <!-- JavaScript文件 -->
+    <script src="js/utils.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
